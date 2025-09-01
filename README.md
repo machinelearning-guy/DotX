@@ -22,7 +22,7 @@ A revolutionary, offline, single-application dot-plot system that scales to ~100
 ### Linux (Ubuntu/Debian)
 
 #### Option 1: DEB Package (Recommended)
-Download the latest `.deb` package from [Releases](https://github.com/dotx-bio/dotx/releases) and install:
+Download the latest `.deb` package from [Releases](https://github.com/machinelearning-guy/DotX/releases) and install:
 
 ```bash
 sudo dpkg -i dotx_1.0.0_amd64.deb
@@ -31,14 +31,14 @@ sudo apt-get install -f  # if dependencies missing
 
 #### Option 2: One-line installer
 ```bash
-curl -sSL https://raw.githubusercontent.com/dotx-bio/dotx/main/scripts/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/machinelearning-guy/DotX/main/scripts/install.sh | sudo bash
 ```
 
 ### Windows
-Download the installer from [Releases](https://github.com/dotx-bio/dotx/releases) and run `DotX-Setup.msi`.
+Download the installer from [Releases](https://github.com/machinelearning-guy/DotX/releases) and run `DotX-Setup.msi`.
 
 ### macOS
-Download the `.dmg` from [Releases](https://github.com/dotx-bio/dotx/releases) and install.
+Download the `.dmg` from [Releases](https://github.com/machinelearning-guy/DotX/releases) and install.
 
 ## Building from Source
 

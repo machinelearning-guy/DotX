@@ -196,7 +196,13 @@ impl DotXProject {
         })
     }
 
-    pub fn add_input(&mut self, file_type: String, role: String, path: PathBuf, genome_info: GenomeInfo) -> Result<()> {
+    pub fn add_input(
+        &mut self,
+        file_type: String,
+        role: String,
+        path: PathBuf,
+        genome_info: GenomeInfo,
+    ) -> Result<()> {
         // Calculate SHA256 of the file
         let sha256 = "todo_calculate_hash".to_string(); // TODO: Implement proper hashing
 
@@ -220,7 +226,13 @@ impl DotXProject {
         Ok(())
     }
 
-    pub fn add_alignment(&mut self, id: String, source: String, file: PathBuf, params: HashMap<String, serde_json::Value>) -> Result<()> {
+    pub fn add_alignment(
+        &mut self,
+        id: String,
+        source: String,
+        file: PathBuf,
+        params: HashMap<String, serde_json::Value>,
+    ) -> Result<()> {
         // TODO: Calculate stats from PAF file
         let stats = AlignmentStats {
             records: 0,

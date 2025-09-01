@@ -65,22 +65,27 @@ impl AnnotationTrack {
 
     pub fn add_annotation(&mut self, annotation: Annotation) {
         let index = self.annotations.len();
-        
+
         // Update contig index
         self.contig_index
             .entry(annotation.seqname.clone())
             .or_insert_with(Vec::new)
             .push(index);
-        
+
         // Update feature types
         if !self.feature_types.contains(&annotation.feature_type) {
             self.feature_types.push(annotation.feature_type.clone());
         }
-        
+
         self.annotations.push(annotation);
     }
 
-    pub fn get_annotations_in_region(&self, contig: &str, start: GenomicPos, end: GenomicPos) -> Vec<&Annotation> {
+    pub fn get_annotations_in_region(
+        &self,
+        contig: &str,
+        start: GenomicPos,
+        end: GenomicPos,
+    ) -> Vec<&Annotation> {
         if let Some(indices) = self.contig_index.get(contig) {
             indices
                 .iter()
@@ -110,26 +115,26 @@ impl Gff3Reader {
 
     pub fn read_track(self, track_name: String, source_file: PathBuf) -> Result<AnnotationTrack> {
         let mut track = AnnotationTrack::new(track_name, source_file);
-        
+
         for line in self.reader.lines() {
             let line = line?;
             let line = line.trim();
-            
+
             // Skip comments and empty lines
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            
+
             let annotation = Self::parse_gff3_line_static(line)?;
             track.add_annotation(annotation);
         }
-        
+
         Ok(track)
     }
 
     fn parse_gff3_line_static(line: &str) -> Result<Annotation> {
         let fields: Vec<&str> = line.split('\t').collect();
-        
+
         if fields.len() != 9 {
             return Err(anyhow::anyhow!("GFF3 line must have 9 fields: {}", line));
         }
@@ -139,7 +144,7 @@ impl Gff3Reader {
         let feature_type = fields[2].to_string();
         let start: GenomicPos = fields[3].parse()?;
         let end: GenomicPos = fields[4].parse()?;
-        
+
         let score = if fields[5] == "." {
             None
         } else {
@@ -176,24 +181,24 @@ impl Gff3Reader {
 
     fn parse_gff3_attributes_static(attr_string: &str) -> Result<HashMap<String, String>> {
         let mut attributes = HashMap::new();
-        
+
         for pair in attr_string.split(';') {
             let pair = pair.trim();
             if pair.is_empty() {
                 continue;
             }
-            
+
             if let Some((key, value)) = pair.split_once('=') {
                 let key = key.trim().to_string();
                 let value = value.trim().to_string();
-                
+
                 // For now, just use the value directly (URL decoding would need urlencoding crate)
                 let decoded_value = value;
-                
+
                 attributes.insert(key, decoded_value);
             }
         }
-        
+
         Ok(attributes)
     }
 }
@@ -210,14 +215,14 @@ impl GenBankReader {
 
     pub fn read_track(&self, track_name: String, source_file: PathBuf) -> Result<AnnotationTrack> {
         let mut track = AnnotationTrack::new(track_name, source_file);
-        
+
         // Simple GenBank parser - in reality this would be much more complex
         let mut in_features = false;
         let mut current_seqname = "unknown".to_string();
-        
+
         for line in self.content.lines() {
             let line = line.trim();
-            
+
             if line.starts_with("LOCUS") {
                 if let Some(name) = line.split_whitespace().nth(1) {
                     current_seqname = name.to_string();
@@ -233,7 +238,7 @@ impl GenBankReader {
                 }
             }
         }
-        
+
         Ok(track)
     }
 
@@ -265,12 +270,15 @@ impl GenBankReader {
         })
     }
 
-    fn parse_genbank_location(&self, location: &str) -> Result<(GenomicPos, GenomicPos, Option<Strand>)> {
+    fn parse_genbank_location(
+        &self,
+        location: &str,
+    ) -> Result<(GenomicPos, GenomicPos, Option<Strand>)> {
         // Very simplified location parsing
         // Real GenBank locations can be much more complex
-        
+
         let (location, strand) = if location.starts_with("complement(") && location.ends_with(')') {
-            (&location[11..location.len()-1], Some(Strand::Reverse))
+            (&location[11..location.len() - 1], Some(Strand::Reverse))
         } else {
             (location, Some(Strand::Forward))
         };

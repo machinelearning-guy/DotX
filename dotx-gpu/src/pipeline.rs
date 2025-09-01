@@ -1,6 +1,6 @@
-use dotx_core::*;
-use crate::{GpuContext, GpuEngine, CpuEngine};
+use crate::{CpuEngine, GpuContext, GpuEngine};
 use anyhow::Result;
+use dotx_core::*;
 
 pub struct GpuPipeline {
     pub ctx: GpuContext,
@@ -17,10 +17,7 @@ impl GpuPipeline {
         // Note: We can't clone wgpu devices/queues easily, so we'll pass references when needed
         let tile_builder = None; // Temporarily disabled due to reference issues
 
-        Ok(Some(Self {
-            ctx,
-            tile_builder,
-        }))
+        Ok(Some(Self { ctx, tile_builder }))
     }
 
     pub fn is_available(&self) -> bool {
@@ -28,9 +25,10 @@ impl GpuPipeline {
     }
 
     pub fn get_device_info(&self) -> String {
-        format!("{} ({:?})", 
-                self.ctx.adapter_info.name, 
-                self.ctx.adapter_info.device_type)
+        format!(
+            "{} ({:?})",
+            self.ctx.adapter_info.name, self.ctx.adapter_info.device_type
+        )
     }
 }
 
@@ -59,17 +57,17 @@ pub struct CpuPipeline;
 impl CpuEngine for CpuPipeline {
     fn build_tiles(&self, alignments: &[PafRecord], grid: &GridParams) -> Result<Vec<Tile>> {
         let mut builder = TileBuilder::new(grid.clone());
-        
+
         for record in alignments {
             builder.add_alignment(record);
         }
-        
+
         Ok(builder.build_tiles())
     }
 
     fn compute_histogram(&self, tiles: &[Tile]) -> Result<Vec<u32>> {
         let mut histogram = vec![0u32; 256];
-        
+
         for tile in tiles {
             for bin in &tile.bins {
                 if bin.count > 0 {
@@ -78,7 +76,7 @@ impl CpuEngine for CpuPipeline {
                 }
             }
         }
-        
+
         Ok(histogram)
     }
 }

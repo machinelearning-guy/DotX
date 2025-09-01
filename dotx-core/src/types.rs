@@ -1,6 +1,6 @@
+use bytemuck::{Pod, Zeroable};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use bytemuck::{Pod, Zeroable};
 
 pub type GenomicPos = u64;
 pub type TileIndex = u64;
@@ -73,14 +73,14 @@ impl GenomeInfo {
     pub fn add_contig(&mut self, name: String, length: GenomicPos) -> u32 {
         let id = self.contigs.len() as u32;
         let offset = self.total_length;
-        
+
         self.contigs.push(ContigInfo {
             id,
             name: name.clone(),
             length,
             offset,
         });
-        
+
         self.contig_map.insert(name, id);
         self.total_length += length;
         id
@@ -91,7 +91,9 @@ impl GenomeInfo {
     }
 
     pub fn get_contig_by_name(&self, name: &str) -> Option<&ContigInfo> {
-        self.contig_map.get(name).and_then(|&id| self.get_contig(id))
+        self.contig_map
+            .get(name)
+            .and_then(|&id| self.get_contig(id))
     }
 
     pub fn global_to_local(&self, global_pos: GenomicPos) -> Option<GenomicCoord> {
@@ -99,7 +101,7 @@ impl GenomeInfo {
         if global_pos >= self.total_length {
             return None;
         }
-        
+
         for contig in &self.contigs {
             let contig_end = contig.offset.saturating_add(contig.length);
             if global_pos >= contig.offset && global_pos < contig_end {
@@ -131,9 +133,9 @@ impl GenomeInfo {
     /// Validate that a genomic interval is valid within this genome
     pub fn validate_interval(&self, interval: &GenomicInterval) -> bool {
         if let Some(contig) = self.get_contig(interval.contig_id) {
-            interval.start < interval.end && 
-            interval.start < contig.length && 
-            interval.end <= contig.length
+            interval.start < interval.end
+                && interval.start < contig.length
+                && interval.end <= contig.length
         } else {
             false
         }

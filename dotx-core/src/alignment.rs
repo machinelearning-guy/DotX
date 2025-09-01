@@ -1,16 +1,14 @@
 use crate::types::*;
-use crate::paf::PafRecord;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlignmentParams {
     pub preset: String,
-    pub k: Option<u16>,        // k-mer size
-    pub w: Option<u16>,        // window size
-    pub secondary: Option<bool>, // include secondary alignments
+    pub k: Option<u16>,             // k-mer size
+    pub w: Option<u16>,             // window size
+    pub secondary: Option<bool>,    // include secondary alignments
     pub min_occ_floor: Option<u32>, // minimum occurrence floor
     pub custom_args: Vec<String>,
 }
@@ -78,7 +76,11 @@ impl AlignmentParams {
             w: Some(6),
             secondary: Some(true),
             min_occ_floor: Some(10),
-            custom_args: vec!["-x".to_string(), "ava-ont".to_string(), "--dual=yes".to_string()],
+            custom_args: vec![
+                "-x".to_string(),
+                "ava-ont".to_string(),
+                "--dual=yes".to_string(),
+            ],
         }
     }
 
@@ -111,44 +113,54 @@ impl AlignmentParams {
             w: Some(12),
             secondary: Some(true),
             min_occ_floor: Some(500),
-            custom_args: vec!["-x".to_string(), "asm20".to_string(), "--dual=yes".to_string()],
+            custom_args: vec![
+                "-x".to_string(),
+                "asm20".to_string(),
+                "--dual=yes".to_string(),
+            ],
         }
     }
 
     pub fn to_minimap2_args(&self) -> Vec<String> {
         let mut args = Vec::new();
-        
+
         // Add custom args first
         args.extend(self.custom_args.iter().cloned());
-        
+
         // Add parameter-specific args
         if let Some(k) = self.k {
             args.push("-k".to_string());
             args.push(k.to_string());
         }
-        
+
         if let Some(w) = self.w {
             args.push("-w".to_string());
             args.push(w.to_string());
         }
-        
+
         if let Some(secondary) = self.secondary {
             if !secondary {
                 args.push("--secondary=no".to_string());
             }
         }
-        
+
         if let Some(min_occ_floor) = self.min_occ_floor {
             args.push("--min-occ-floor".to_string());
             args.push(min_occ_floor.to_string());
         }
-        
+
         args
     }
 }
 
 pub trait Aligner {
-    fn align(&self, reference: &PathBuf, query: &PathBuf, params: &AlignmentParams, output: &PathBuf) -> Result<AlignmentResult>;
+    fn align(
+        &self,
+        reference: &PathBuf,
+        query: &PathBuf,
+        params: &AlignmentParams,
+        output: &PathBuf,
+    ) -> Result<AlignmentResult>;
     fn name(&self) -> &'static str;
     fn version(&self) -> String;
 }
@@ -187,44 +199,47 @@ impl Minimap2Aligner {
                 PathBuf::from("minimap2")
             }
         });
-        
+
         Ok(Self { binary_path })
     }
 }
 
 impl Aligner for Minimap2Aligner {
-    fn align(&self, reference: &PathBuf, query: &PathBuf, params: &AlignmentParams, output: &PathBuf) -> Result<AlignmentResult> {
+    fn align(
+        &self,
+        reference: &PathBuf,
+        query: &PathBuf,
+        params: &AlignmentParams,
+        output: &PathBuf,
+    ) -> Result<AlignmentResult> {
         use std::process::Command;
         use std::time::Instant;
-        
+
         let start_time = Instant::now();
-        
+
         let mut cmd = Command::new(&self.binary_path);
-        
+
         // Add parameters
         for arg in params.to_minimap2_args() {
             cmd.arg(arg);
         }
-        
+
         // Add input files and output
-        cmd.arg(reference)
-           .arg(query)
-           .arg("-o")
-           .arg(output);
-        
+        cmd.arg(reference).arg(query).arg("-o").arg(output);
+
         log::info!("Running minimap2: {:?}", cmd);
-        
+
         let output_result = cmd.output()?;
         let runtime_seconds = start_time.elapsed().as_secs_f64();
-        
+
         if !output_result.status.success() {
             let stderr = String::from_utf8_lossy(&output_result.stderr);
             return Err(anyhow::anyhow!("minimap2 failed: {}", stderr));
         }
-        
+
         // Calculate stats from the output PAF file
         let stats = calculate_paf_stats(output)?;
-        
+
         Ok(AlignmentResult {
             output_file: output.clone(),
             stats,
@@ -238,7 +253,7 @@ impl Aligner for Minimap2Aligner {
 
     fn version(&self) -> String {
         use std::process::Command;
-        
+
         let output = Command::new(&self.binary_path)
             .arg("--version")
             .output()
@@ -247,15 +262,15 @@ impl Aligner for Minimap2Aligner {
                 stdout: b"unknown".to_vec(),
                 stderr: Vec::new(),
             });
-        
+
         String::from_utf8_lossy(&output.stdout).trim().to_string()
     }
 }
 
 fn calculate_paf_stats(paf_path: &PathBuf) -> Result<AlignmentRunStats> {
     use crate::paf::PafReader;
-    
-    let mut reader = PafReader::new(paf_path)?;
+
+    let reader = PafReader::new(paf_path)?;
     let mut total_records = 0u64;
     let mut total_aligned_bases = 0u64;
     let mut identities = Vec::new();
@@ -268,20 +283,20 @@ fn calculate_paf_stats(paf_path: &PathBuf) -> Result<AlignmentRunStats> {
         let record = record_result?;
         total_records += 1;
         total_aligned_bases += record.alignment_len;
-        
+
         let identity = record.identity();
         identities.push(identity);
-        
+
         // Update identity histogram
         let identity_bin = ((identity * 100.0) as usize).min(99);
         identity_histogram[identity_bin] += 1;
-        
+
         // Update strand counts
         match record.strand {
             Strand::Forward => strand_forward_count += 1,
             Strand::Reverse => strand_reverse_count += 1,
         }
-        
+
         // Update length histogram
         let length = record.alignment_len;
         if length > 0 {

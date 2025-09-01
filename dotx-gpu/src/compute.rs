@@ -1,6 +1,6 @@
+use anyhow::Result;
 use dotx_core::*;
 use wgpu;
-use anyhow::Result;
 
 pub struct GpuTileBuilder {
     device: wgpu::Device,
@@ -30,10 +30,10 @@ impl GpuTileBuilder {
         })
     }
 
-    pub fn build_tiles_gpu(&self, records: &[PafRecord], grid: &GridParams) -> Result<Vec<Tile>> {
+    pub fn build_tiles_gpu(&self, records: &[PafRecord], _grid: &GridParams) -> Result<Vec<Tile>> {
         // Convert PAF records to GPU buffer format
         let gpu_records = self.prepare_gpu_records(records);
-        
+
         // Create buffers
         let record_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("PAF Records Buffer"),
@@ -41,9 +41,10 @@ impl GpuTileBuilder {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         // Write data to buffer
-        self.queue.write_buffer(&record_buffer, 0, bytemuck::cast_slice(&gpu_records));
+        self.queue
+            .write_buffer(&record_buffer, 0, bytemuck::cast_slice(&gpu_records));
 
         // Create output buffer for tile data
         let output_size = std::mem::size_of::<GpuTileData>() * 1024; // Estimate
@@ -72,9 +73,11 @@ impl GpuTileBuilder {
         });
 
         // Dispatch compute shader
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Tile Builder Command Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Tile Builder Command Encoder"),
+            });
 
         {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -83,7 +86,7 @@ impl GpuTileBuilder {
             });
             compute_pass.set_pipeline(&self.pipeline);
             compute_pass.set_bind_group(0, &bind_group, &[]);
-            
+
             // Dispatch with appropriate workgroup count
             let workgroup_size = 64;
             let num_workgroups = (gpu_records.len() as u32 + workgroup_size - 1) / workgroup_size;
@@ -98,16 +101,23 @@ impl GpuTileBuilder {
     }
 
     fn prepare_gpu_records(&self, records: &[PafRecord]) -> Vec<GpuPafRecord> {
-        records.iter().map(|record| GpuPafRecord {
-            query_start: record.query_start,
-            query_end: record.query_end,
-            target_start: record.target_start,
-            target_end: record.target_end,
-            strand: if record.strand == Strand::Forward { 1 } else { 0 },
-            identity: (record.identity() * 1_000_000.0) as u32,
-            alignment_len: record.alignment_len as u32,
-            _padding: [0; 1],
-        }).collect()
+        records
+            .iter()
+            .map(|record| GpuPafRecord {
+                query_start: record.query_start,
+                query_end: record.query_end,
+                target_start: record.target_start,
+                target_end: record.target_end,
+                strand: if record.strand == Strand::Forward {
+                    1
+                } else {
+                    0
+                },
+                identity: (record.identity() * 1_000_000.0) as u32,
+                alignment_len: record.alignment_len as u32,
+                _padding: [0; 1],
+            })
+            .collect()
     }
 }
 

@@ -73,11 +73,14 @@ impl FromStr for PafRecord {
         if line.is_empty() {
             return Err(anyhow!("Empty PAF line"));
         }
-        
+
         let fields: Vec<&str> = line.split('\t').collect();
-        
+
         if fields.len() < 12 {
-            return Err(anyhow!("PAF line has only {} fields, expected at least 12", fields.len()));
+            return Err(anyhow!(
+                "PAF line has only {} fields, expected at least 12",
+                fields.len()
+            ));
         }
 
         // Validate and parse query information
@@ -85,23 +88,42 @@ impl FromStr for PafRecord {
         if query_name.is_empty() {
             return Err(anyhow!("Query name cannot be empty"));
         }
-        
-        let query_len: GenomicPos = fields[1].parse().map_err(|_| anyhow!("Invalid query length: {}", fields[1]))?;
-        let query_start: GenomicPos = fields[2].parse().map_err(|_| anyhow!("Invalid query start: {}", fields[2]))?;
-        let query_end: GenomicPos = fields[3].parse().map_err(|_| anyhow!("Invalid query end: {}", fields[3]))?;
-        
+
+        let query_len: GenomicPos = fields[1]
+            .parse()
+            .map_err(|_| anyhow!("Invalid query length: {}", fields[1]))?;
+        let query_start: GenomicPos = fields[2]
+            .parse()
+            .map_err(|_| anyhow!("Invalid query start: {}", fields[2]))?;
+        let query_end: GenomicPos = fields[3]
+            .parse()
+            .map_err(|_| anyhow!("Invalid query end: {}", fields[3]))?;
+
         // Validate query coordinates
         if query_start >= query_end {
-            return Err(anyhow!("Invalid query coordinates: start {} >= end {}", query_start, query_end));
+            return Err(anyhow!(
+                "Invalid query coordinates: start {} >= end {}",
+                query_start,
+                query_end
+            ));
         }
         if query_end > query_len {
-            return Err(anyhow!("Query end {} exceeds query length {}", query_end, query_len));
+            return Err(anyhow!(
+                "Query end {} exceeds query length {}",
+                query_end,
+                query_len
+            ));
         }
-        
+
         let strand = match fields[4].trim() {
             "+" => Strand::Forward,
             "-" => Strand::Reverse,
-            _ => return Err(anyhow!("Invalid strand: '{}', expected '+' or '-'", fields[4])),
+            _ => {
+                return Err(anyhow!(
+                    "Invalid strand: '{}', expected '+' or '-'",
+                    fields[4]
+                ))
+            }
         };
 
         // Validate and parse target information
@@ -109,26 +131,50 @@ impl FromStr for PafRecord {
         if target_name.is_empty() {
             return Err(anyhow!("Target name cannot be empty"));
         }
-        
-        let target_len: GenomicPos = fields[6].parse().map_err(|_| anyhow!("Invalid target length: {}", fields[6]))?;
-        let target_start: GenomicPos = fields[7].parse().map_err(|_| anyhow!("Invalid target start: {}", fields[7]))?;
-        let target_end: GenomicPos = fields[8].parse().map_err(|_| anyhow!("Invalid target end: {}", fields[8]))?;
-        
+
+        let target_len: GenomicPos = fields[6]
+            .parse()
+            .map_err(|_| anyhow!("Invalid target length: {}", fields[6]))?;
+        let target_start: GenomicPos = fields[7]
+            .parse()
+            .map_err(|_| anyhow!("Invalid target start: {}", fields[7]))?;
+        let target_end: GenomicPos = fields[8]
+            .parse()
+            .map_err(|_| anyhow!("Invalid target end: {}", fields[8]))?;
+
         // Validate target coordinates
         if target_start >= target_end {
-            return Err(anyhow!("Invalid target coordinates: start {} >= end {}", target_start, target_end));
+            return Err(anyhow!(
+                "Invalid target coordinates: start {} >= end {}",
+                target_start,
+                target_end
+            ));
         }
         if target_end > target_len {
-            return Err(anyhow!("Target end {} exceeds target length {}", target_end, target_len));
+            return Err(anyhow!(
+                "Target end {} exceeds target length {}",
+                target_end,
+                target_len
+            ));
         }
-        
-        let residue_matches: u64 = fields[9].parse().map_err(|_| anyhow!("Invalid residue matches: {}", fields[9]))?;
-        let alignment_len: u64 = fields[10].parse().map_err(|_| anyhow!("Invalid alignment length: {}", fields[10]))?;
-        let mapping_quality: u8 = fields[11].parse().map_err(|_| anyhow!("Invalid mapping quality: {}", fields[11]))?;
-        
+
+        let residue_matches: u64 = fields[9]
+            .parse()
+            .map_err(|_| anyhow!("Invalid residue matches: {}", fields[9]))?;
+        let alignment_len: u64 = fields[10]
+            .parse()
+            .map_err(|_| anyhow!("Invalid alignment length: {}", fields[10]))?;
+        let mapping_quality: u8 = fields[11]
+            .parse()
+            .map_err(|_| anyhow!("Invalid mapping quality: {}", fields[11]))?;
+
         // Validate alignment statistics
         if residue_matches > alignment_len {
-            return Err(anyhow!("Residue matches {} cannot exceed alignment length {}", residue_matches, alignment_len));
+            return Err(anyhow!(
+                "Residue matches {} cannot exceed alignment length {}",
+                residue_matches,
+                alignment_len
+            ));
         }
 
         let mut tags = Vec::new();
@@ -173,18 +219,21 @@ impl PafReader {
     }
 
     pub fn records(self) -> impl Iterator<Item = Result<PafRecord>> {
-        self.reader.lines().map(|line| {
-            let line = line?;
-            if line.trim().is_empty() || line.starts_with('#') {
-                // Skip empty lines and comments
-                return Ok(None);
-            }
-            line.parse().map(Some)
-        }).filter_map(|result| match result {
-            Ok(Some(record)) => Some(Ok(record)),
-            Ok(None) => None,
-            Err(e) => Some(Err(e)),
-        })
+        self.reader
+            .lines()
+            .map(|line| {
+                let line = line?;
+                if line.trim().is_empty() || line.starts_with('#') {
+                    // Skip empty lines and comments
+                    return Ok(None);
+                }
+                line.parse().map(Some)
+            })
+            .filter_map(|result| match result {
+                Ok(Some(record)) => Some(Ok(record)),
+                Ok(None) => None,
+                Err(e) => Some(Err(e)),
+            })
     }
 }
 
@@ -222,7 +271,7 @@ pub struct PafStats {
 }
 
 impl PafStats {
-    pub fn compute<I>(records: I) -> Result<Self> 
+    pub fn compute<I>(records: I) -> Result<Self>
     where
         I: Iterator<Item = Result<PafRecord>>,
     {
@@ -235,10 +284,10 @@ impl PafStats {
             let record = record_result?;
             total_records += 1;
             total_aligned_length += record.alignment_len;
-            
+
             let identity = record.identity();
             identities.push(identity);
-            
+
             if record.strand == Strand::Forward {
                 forward_count += 1;
             }
@@ -257,7 +306,7 @@ impl PafStats {
         }
 
         identities.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         let mean_identity = identities.iter().sum::<f64>() / identities.len() as f64;
         let median_identity = if identities.len() == 1 {
             identities[0]

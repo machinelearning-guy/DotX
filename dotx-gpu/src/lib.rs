@@ -18,7 +18,7 @@ pub struct GpuContext {
 impl GpuContext {
     pub async fn new() -> anyhow::Result<Option<Self>> {
         let instance = wgpu::Instance::default();
-        
+
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
@@ -36,7 +36,11 @@ impl GpuContext {
         };
 
         let adapter_info = adapter.get_info();
-        log::info!("GPU adapter: {} ({:?})", adapter_info.name, adapter_info.device_type);
+        log::info!(
+            "GPU adapter: {} ({:?})",
+            adapter_info.name,
+            adapter_info.device_type
+        );
 
         let (device, queue) = adapter
             .request_device(
@@ -58,12 +62,14 @@ impl GpuContext {
 }
 
 pub trait GpuEngine {
-    fn build_tiles(&self, alignments: &[PafRecord], grid: &GridParams) -> anyhow::Result<Vec<Tile>>;
+    fn build_tiles(&self, alignments: &[PafRecord], grid: &GridParams)
+        -> anyhow::Result<Vec<Tile>>;
     fn compute_histogram(&self, tiles: &[Tile]) -> anyhow::Result<Vec<u32>>;
     fn preview_align(&self, ref_seq: &[u8], qry_seq: &[u8]) -> anyhow::Result<Vec<PafRecord>>;
 }
 
 pub trait CpuEngine {
-    fn build_tiles(&self, alignments: &[PafRecord], grid: &GridParams) -> anyhow::Result<Vec<Tile>>;
+    fn build_tiles(&self, alignments: &[PafRecord], grid: &GridParams)
+        -> anyhow::Result<Vec<Tile>>;
     fn compute_histogram(&self, tiles: &[Tile]) -> anyhow::Result<Vec<u32>>;
 }
