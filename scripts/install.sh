@@ -4,7 +4,7 @@
 set -e
 
 # Configuration
-REPO_URL="https://github.com/dotx-bio/dotx"
+REPO_URL="https://github.com/machinelearning-guy/DotX"
 INSTALL_DIR="/opt/dotx"
 BIN_DIR="/usr/local/bin"
 TEMP_DIR=$(mktemp -d)
@@ -56,6 +56,55 @@ detect_distro() {
     log_info "Detected: $PRETTY_NAME"
 }
 
+# Install Rust toolchain
+install_rust() {
+    log_info "Checking for Rust installation..."
+    
+    # Check both system-wide and user-local Rust installations
+    if command -v rustc >/dev/null 2>&1 && command -v cargo >/dev/null 2>&1; then
+        log_info "Rust already installed: $(rustc --version)"
+        return 0
+    fi
+    
+    # Try to source user's Rust environment if it exists
+    if [ -f "$HOME/.cargo/env" ]; then
+        source "$HOME/.cargo/env"
+        if command -v rustc >/dev/null 2>&1 && command -v cargo >/dev/null 2>&1; then
+            log_info "Found user Rust installation: $(rustc --version)"
+            return 0
+        fi
+    fi
+    
+    log_info "Installing Rust toolchain..."
+    
+    # Install Rust as the invoking user, not root
+    if [ -n "${SUDO_USER}" ]; then
+        # If run with sudo, install as the original user
+        sudo -u "${SUDO_USER}" bash -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
+        RUST_HOME="/home/${SUDO_USER}/.cargo"
+    else
+        # Install as current user
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        RUST_HOME="$HOME/.cargo"
+    fi
+    
+    # Source the environment
+    if [ -f "${RUST_HOME}/env" ]; then
+        source "${RUST_HOME}/env"
+    fi
+    
+    # Add to PATH for current session
+    export PATH="${RUST_HOME}/bin:$PATH"
+    
+    if ! command -v cargo >/dev/null 2>&1; then
+        log_error "Failed to install Rust toolchain"
+        log_error "Please install Rust manually: https://rustup.rs/"
+        exit 1
+    fi
+    
+    log_info "Rust installed successfully: $(rustc --version)"
+}
+
 # Install dependencies
 install_dependencies() {
     log_info "Installing dependencies..."
@@ -63,7 +112,7 @@ install_dependencies() {
     case "$DISTRO" in
         ubuntu|debian)
             apt-get update
-            apt-get install -y wget curl libgtk-3-0 libssl3
+            apt-get install -y wget curl git build-essential libgtk-3-dev libssl-dev pkg-config
             
             # Try to install minimap2
             if apt-cache search minimap2 | grep -q minimap2; then
@@ -73,7 +122,7 @@ install_dependencies() {
             fi
             ;;
         fedora|centos|rhel)
-            dnf install -y wget curl gtk3 openssl
+            dnf install -y wget curl git gcc gcc-c++ gtk3-devel openssl-devel pkgconfig
             log_warn "minimap2 may need to be installed manually on this distribution"
             ;;
         *)
@@ -82,34 +131,47 @@ install_dependencies() {
     esac
 }
 
-# Download and install DotX
+# Clone and build DotX from source
 install_dotx() {
-    log_info "Downloading DotX..."
-    
-    # Get latest release info
-    LATEST_RELEASE=$(curl -s "${REPO_URL}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    
-    if [ -z "$LATEST_RELEASE" ]; then
-        log_error "Could not determine latest release"
-        exit 1
-    fi
-    
-    log_info "Latest version: $LATEST_RELEASE"
-    
-    # Download appropriate archive
-    ARCHIVE_NAME="dotx-linux-x64.tar.gz"
-    DOWNLOAD_URL="${REPO_URL}/releases/download/${LATEST_RELEASE}/${ARCHIVE_NAME}"
+    log_info "Cloning DotX repository..."
     
     cd "${TEMP_DIR}"
-    wget -O "${ARCHIVE_NAME}" "${DOWNLOAD_URL}" || {
-        log_error "Failed to download DotX"
+    git clone "${REPO_URL}" dotx-source || {
+        log_error "Failed to clone repository"
         exit 1
     }
     
-    # Extract archive
-    log_info "Extracting DotX..."
-    tar -xzf "${ARCHIVE_NAME}" || {
-        log_error "Failed to extract archive"
+    cd dotx-source
+    
+    log_info "Building DotX from source..."
+    
+    # Ensure cargo is available - try multiple locations
+    if [ -n "${SUDO_USER}" ]; then
+        RUST_HOME="/home/${SUDO_USER}/.cargo"
+    else
+        RUST_HOME="$HOME/.cargo"
+    fi
+    
+    export PATH="${RUST_HOME}/bin:$PATH"
+    
+    # Source Rust environment if available
+    if [ -f "${RUST_HOME}/env" ]; then
+        source "${RUST_HOME}/env"
+    fi
+    
+    # Verify cargo is available
+    if ! command -v cargo >/dev/null 2>&1; then
+        log_error "Cargo not found in PATH. Please ensure Rust is properly installed."
+        exit 1
+    fi
+    
+    log_info "Using Rust: $(rustc --version)"
+    log_info "Using Cargo: $(cargo --version)"
+    
+    # Build the project in release mode
+    cargo build --release || {
+        log_error "Failed to build DotX"
+        log_error "Please check the build logs above for details"
         exit 1
     }
     
@@ -117,20 +179,35 @@ install_dotx() {
     log_info "Installing to ${INSTALL_DIR}..."
     mkdir -p "${INSTALL_DIR}/bin"
     
-    # Copy binaries
-    cp dotx "${INSTALL_DIR}/bin/"
-    cp dotx-gui "${INSTALL_DIR}/bin/"
-    chmod +x "${INSTALL_DIR}/bin/dotx"
-    chmod +x "${INSTALL_DIR}/bin/dotx-gui"
+    # Copy binaries from target/release
+    if [ -f "target/release/dotx" ]; then
+        cp "target/release/dotx" "${INSTALL_DIR}/bin/"
+        chmod +x "${INSTALL_DIR}/bin/dotx"
+        ln -sf "${INSTALL_DIR}/bin/dotx" "${BIN_DIR}/dotx"
+        log_info "Installed dotx CLI"
+    else
+        log_warn "dotx CLI binary not found in build output"
+    fi
     
-    # Create symlinks
-    ln -sf "${INSTALL_DIR}/bin/dotx" "${BIN_DIR}/dotx"
-    ln -sf "${INSTALL_DIR}/bin/dotx-gui" "${BIN_DIR}/dotx-gui"
+    if [ -f "target/release/dotx-gui" ]; then
+        cp "target/release/dotx-gui" "${INSTALL_DIR}/bin/"
+        chmod +x "${INSTALL_DIR}/bin/dotx-gui"
+        ln -sf "${INSTALL_DIR}/bin/dotx-gui" "${BIN_DIR}/dotx-gui"
+        log_info "Installed dotx GUI"
+    else
+        log_warn "dotx-gui binary not found in build output"
+    fi
     
     # Copy documentation
     if [ -f "README.md" ]; then
         mkdir -p "${INSTALL_DIR}/doc"
         cp README.md "${INSTALL_DIR}/doc/"
+    fi
+    
+    # Copy desktop files and icons if they exist
+    if [ -d "packaging/linux" ]; then
+        mkdir -p "${INSTALL_DIR}/share"
+        cp -r packaging/linux/* "${INSTALL_DIR}/share/" 2>/dev/null || true
     fi
 }
 
@@ -138,8 +215,22 @@ install_dotx() {
 install_desktop_files() {
     log_info "Installing desktop integration..."
     
-    # Create desktop file
-    cat > /usr/share/applications/dotx.desktop << 'EOF'
+    # Install icon if available
+    if [ -f "${INSTALL_DIR}/share/dotx.png" ]; then
+        mkdir -p /usr/share/pixmaps
+        cp "${INSTALL_DIR}/share/dotx.png" /usr/share/pixmaps/dotx.png
+        log_info "Installed application icon"
+    fi
+    
+    # Install desktop file
+    if [ -f "${INSTALL_DIR}/share/dotx.desktop" ]; then
+        cp "${INSTALL_DIR}/share/dotx.desktop" /usr/share/applications/
+        # Update the Exec path to point to our installation
+        sed -i "s|Exec=.*|Exec=${INSTALL_DIR}/bin/dotx-gui %F|" /usr/share/applications/dotx.desktop
+        log_info "Installed desktop file"
+    else
+        # Create desktop file if not found
+        cat > /usr/share/applications/dotx.desktop << 'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
@@ -152,10 +243,18 @@ StartupNotify=true
 Categories=Science;Biology;Education;
 MimeType=application/x-dotx;
 EOF
+        log_info "Created desktop file"
+    fi
 
-    # Create MIME type
-    mkdir -p /usr/share/mime/packages
-    cat > /usr/share/mime/packages/dotx.xml << 'EOF'
+    # Install MIME type
+    if [ -f "${INSTALL_DIR}/share/dotx.xml" ]; then
+        mkdir -p /usr/share/mime/packages
+        cp "${INSTALL_DIR}/share/dotx.xml" /usr/share/mime/packages/
+        log_info "Installed MIME type"
+    else
+        # Create MIME type if not found
+        mkdir -p /usr/share/mime/packages
+        cat > /usr/share/mime/packages/dotx.xml << 'EOF'
 <?xml version="1.0"?>
 <mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
     <mime-type type="application/x-dotx">
@@ -164,6 +263,8 @@ EOF
     </mime-type>
 </mime-info>
 EOF
+        log_info "Created MIME type"
+    fi
 
     # Update databases
     if command -v update-desktop-database >/dev/null 2>&1; then
@@ -185,6 +286,7 @@ main() {
     check_root
     detect_distro
     install_dependencies
+    install_rust
     install_dotx
     install_desktop_files
     
