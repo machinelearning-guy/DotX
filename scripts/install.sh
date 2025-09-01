@@ -80,21 +80,40 @@ install_rust() {
     # Install Rust as the invoking user, not root
     if [ -n "${SUDO_USER}" ]; then
         # If run with sudo, install as the original user
-        sudo -u "${SUDO_USER}" bash -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
+        sudo -u "${SUDO_USER}" bash -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source ~/.cargo/env && rustup default stable'
         RUST_HOME="/home/${SUDO_USER}/.cargo"
     else
         # Install as current user
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         RUST_HOME="$HOME/.cargo"
+        # Source environment and set default toolchain
+        if [ -f "${RUST_HOME}/env" ]; then
+            source "${RUST_HOME}/env"
+        fi
+        export PATH="${RUST_HOME}/bin:$PATH"
+        rustup default stable
     fi
     
-    # Source the environment
+    # Source the environment and ensure PATH is set
     if [ -f "${RUST_HOME}/env" ]; then
         source "${RUST_HOME}/env"
     fi
     
     # Add to PATH for current session
     export PATH="${RUST_HOME}/bin:$PATH"
+    
+    # Verify installation with multiple attempts
+    RETRY_COUNT=0
+    while [ $RETRY_COUNT -lt 3 ]; do
+        if command -v cargo >/dev/null 2>&1 && command -v rustc >/dev/null 2>&1; then
+            break
+        fi
+        log_info "Waiting for Rust installation to complete... (attempt $((RETRY_COUNT + 1))/3)"
+        sleep 2
+        source "${RUST_HOME}/env" 2>/dev/null || true
+        export PATH="${RUST_HOME}/bin:$PATH"
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+    done
     
     if ! command -v cargo >/dev/null 2>&1; then
         log_error "Failed to install Rust toolchain"
@@ -170,7 +189,7 @@ install_dotx() {
     
     log_info "Building DotX from source..."
     
-    # Ensure cargo is available - try multiple locations
+    # Ensure cargo is available - try multiple locations and detection methods
     if [ -n "${SUDO_USER}" ]; then
         RUST_HOME="/home/${SUDO_USER}/.cargo"
     else
@@ -184,10 +203,42 @@ install_dotx() {
         source "${RUST_HOME}/env"
     fi
     
-    # Verify cargo is available
+    # Try alternative Rust detection methods
     if ! command -v cargo >/dev/null 2>&1; then
-        log_error "Cargo not found in PATH. Please ensure Rust is properly installed."
+        # Try system-wide installation
+        if command -v rustc >/dev/null 2>&1 && command -v cargo >/dev/null 2>&1; then
+            log_info "Using system-wide Rust installation"
+        else
+            # Try to find cargo in common locations
+            for rust_path in "/usr/bin" "/usr/local/bin" "$HOME/.cargo/bin" "/home/${SUDO_USER}/.cargo/bin"; do
+                if [ -f "${rust_path}/cargo" ]; then
+                    export PATH="${rust_path}:$PATH"
+                    log_info "Found cargo in ${rust_path}"
+                    break
+                fi
+            done
+        fi
+    fi
+    
+    # Final verification with better error messaging
+    if ! command -v cargo >/dev/null 2>&1; then
+        log_error "Cargo not found in PATH. Debugging information:"
+        log_error "  Current PATH: $PATH"
+        log_error "  RUST_HOME: ${RUST_HOME}"
+        log_error "  Contents of ${RUST_HOME}/bin/:"
+        ls -la "${RUST_HOME}/bin/" 2>/dev/null || log_error "    Directory not found"
+        log_error "Please ensure Rust is properly installed and try running 'rustup default stable' manually."
         exit 1
+    fi
+    
+    # Ensure we have a default toolchain
+    if ! rustc --version >/dev/null 2>&1; then
+        log_info "Setting up default Rust toolchain..."
+        if [ -n "${SUDO_USER}" ]; then
+            sudo -u "${SUDO_USER}" rustup default stable
+        else
+            rustup default stable
+        fi
     fi
     
     log_info "Using Rust: $(rustc --version)"
