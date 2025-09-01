@@ -111,18 +111,40 @@ install_dependencies() {
     
     case "$DISTRO" in
         ubuntu|debian)
-            apt-get update
-            apt-get install -y wget curl git build-essential libgtk-3-dev libssl-dev pkg-config
+            # Update package lists, but don't fail on broken repositories
+            log_info "Updating package lists..."
+            if ! apt-get update; then
+                log_warn "Package update had some issues (possibly broken PPAs), but continuing..."
+            fi
+            
+            log_info "Installing required packages..."
+            if apt-get install -y wget curl git build-essential libgtk-3-dev libssl-dev pkg-config; then
+                log_info "Successfully installed build dependencies"
+            else
+                log_error "Failed to install required packages"
+                exit 1
+            fi
             
             # Try to install minimap2
+            log_info "Checking for minimap2 availability..."
             if apt-cache search minimap2 | grep -q minimap2; then
-                apt-get install -y minimap2
+                if apt-get install -y minimap2; then
+                    log_info "Successfully installed minimap2"
+                else
+                    log_warn "minimap2 installation failed, but continuing"
+                fi
             else
                 log_warn "minimap2 not found in repositories, will need to be installed manually"
             fi
             ;;
         fedora|centos|rhel)
-            dnf install -y wget curl git gcc gcc-c++ gtk3-devel openssl-devel pkgconfig
+            log_info "Installing packages for Fedora/CentOS/RHEL..."
+            if dnf install -y wget curl git gcc gcc-c++ gtk3-devel openssl-devel pkgconfig; then
+                log_info "Successfully installed build dependencies"
+            else
+                log_error "Failed to install required packages"
+                exit 1
+            fi
             log_warn "minimap2 may need to be installed manually on this distribution"
             ;;
         *)
@@ -133,13 +155,16 @@ install_dependencies() {
 
 # Clone and build DotX from source
 install_dotx() {
-    log_info "Cloning DotX repository..."
+    log_info "Cloning DotX repository from ${REPO_URL}..."
     
     cd "${TEMP_DIR}"
-    git clone "${REPO_URL}" dotx-source || {
+    if git clone "${REPO_URL}" dotx-source; then
+        log_info "Successfully cloned repository"
+    else
         log_error "Failed to clone repository"
+        log_error "Please check your internet connection and repository access"
         exit 1
-    }
+    fi
     
     cd dotx-source
     
@@ -169,33 +194,51 @@ install_dotx() {
     log_info "Using Cargo: $(cargo --version)"
     
     # Build the project in release mode
-    cargo build --release || {
+    log_info "Starting build process (this may take several minutes)..."
+    if cargo build --release; then
+        log_info "Successfully built DotX"
+    else
         log_error "Failed to build DotX"
         log_error "Please check the build logs above for details"
+        log_error "Common issues: missing dependencies, network problems during crate downloads"
         exit 1
-    }
+    fi
     
     # Create installation directory
     log_info "Installing to ${INSTALL_DIR}..."
     mkdir -p "${INSTALL_DIR}/bin"
     
+    # Check what binaries were built
+    log_info "Checking build output..."
+    ls -la target/release/ | grep -E "dotx(-gui)?$" || log_warn "No dotx binaries found in expected location"
+    
     # Copy binaries from target/release
+    INSTALLED_BINARIES=0
     if [ -f "target/release/dotx" ]; then
-        cp "target/release/dotx" "${INSTALL_DIR}/bin/"
-        chmod +x "${INSTALL_DIR}/bin/dotx"
-        ln -sf "${INSTALL_DIR}/bin/dotx" "${BIN_DIR}/dotx"
-        log_info "Installed dotx CLI"
+        cp "target/release/dotx" "${INSTALL_DIR}/bin/dotx-cli"
+        chmod +x "${INSTALL_DIR}/bin/dotx-cli"
+        ln -sf "${INSTALL_DIR}/bin/dotx-cli" "${BIN_DIR}/dotx-cli"
+        log_info "✓ Installed dotx CLI as 'dotx-cli'"
+        INSTALLED_BINARIES=$((INSTALLED_BINARIES + 1))
     else
-        log_warn "dotx CLI binary not found in build output"
+        log_warn "✗ dotx CLI binary not found in build output"
     fi
     
     if [ -f "target/release/dotx-gui" ]; then
         cp "target/release/dotx-gui" "${INSTALL_DIR}/bin/"
         chmod +x "${INSTALL_DIR}/bin/dotx-gui"
+        # Make 'dotx' command launch the GUI
+        ln -sf "${INSTALL_DIR}/bin/dotx-gui" "${BIN_DIR}/dotx"
         ln -sf "${INSTALL_DIR}/bin/dotx-gui" "${BIN_DIR}/dotx-gui"
-        log_info "Installed dotx GUI"
+        log_info "✓ Installed dotx GUI (accessible via 'dotx' and 'dotx-gui')"
+        INSTALLED_BINARIES=$((INSTALLED_BINARIES + 1))
     else
-        log_warn "dotx-gui binary not found in build output"
+        log_warn "✗ dotx-gui binary not found in build output"
+    fi
+    
+    if [ $INSTALLED_BINARIES -eq 0 ]; then
+        log_error "No binaries were installed! Build may have failed."
+        exit 1
     fi
     
     # Copy documentation
@@ -293,12 +336,36 @@ main() {
     echo ""
     log_info "Installation completed successfully!"
     echo ""
-    echo "You can now:"
-    echo "  - Launch the GUI: dotx-gui"
-    echo "  - Use the CLI: dotx --help"
+    
+    # Verify installation
+    log_info "Verifying installation..."
+    if command -v dotx >/dev/null 2>&1; then
+        echo "  ✓ dotx GUI installed and available in PATH"
+        echo "    (This launches the graphical interface)"
+    else
+        echo "  ✗ dotx command not found in PATH"
+    fi
+    
+    if command -v dotx-cli >/dev/null 2>&1; then
+        echo "  ✓ dotx-cli installed and available in PATH"
+        echo "    Version: $(dotx-cli --version 2>/dev/null || echo 'Unknown')"
+    else
+        echo "  ✗ dotx-cli not found in PATH"
+    fi
+    
+    if command -v dotx-gui >/dev/null 2>&1; then
+        echo "  ✓ dotx-gui also available as alternative GUI command"
+    fi
+    
+    echo ""
+    echo "Usage:"
+    echo "  - Launch the GUI: dotx"
+    echo "  - Use the CLI: dotx-cli --help"
+    echo "  - Alternative GUI command: dotx-gui"
     echo "  - Find DotX in Applications menu"
     echo ""
-    log_info "To uninstall, run: rm -rf ${INSTALL_DIR} ${BIN_DIR}/dotx*"
+    log_info "Installation directory: ${INSTALL_DIR}"
+    log_info "To uninstall, run: rm -rf ${INSTALL_DIR} ${BIN_DIR}/dotx ${BIN_DIR}/dotx-cli ${BIN_DIR}/dotx-gui"
 }
 
 # Run main function
