@@ -1,0 +1,13 @@
+#!/bin/bash
+# DotX pre-removal script
+
+set -e
+
+echo "Removing DotX..."
+
+# Remove symlink
+if [ -L /usr/local/bin/dotx ]; then
+    rm -f /usr/local/bin/dotx
+fi
+
+exit 0

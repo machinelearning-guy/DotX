@@ -1,0 +1,30 @@
+[package]
+name = "dotx-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core data structures and algorithms for DotX"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+log.workspace = true
+rayon.workspace = true
+zstd.workspace = true
+flate2.workspace = true
+zip.workspace = true
+memmap2.workspace = true
+lmdb-rkv.workspace = true
+parquet.workspace = true
+bytemuck.workspace = true
+morton-encoding.workspace = true
+xxhash-rust.workspace = true
+chrono.workspace = true
+which.workspace = true
+
+[features]
+default = []
+minimap2 = []

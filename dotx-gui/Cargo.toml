@@ -1,0 +1,26 @@
+[package]
+name = "dotx-gui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "GUI application for DotX dot plot visualization"
+
+[dependencies]
+dotx-core = { path = "../dotx-core" }
+dotx-gpu = { path = "../dotx-gpu" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+log.workspace = true
+env_logger.workspace = true
+egui.workspace = true
+eframe.workspace = true
+wgpu.workspace = true
+rfd.workspace = true
+image.workspace = true
+
+[[bin]]
+name = "dotx-gui"
+path = "src/main.rs"

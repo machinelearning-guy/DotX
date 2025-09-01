@@ -1,0 +1,36 @@
+[build]
+# Default target for cross-compilation
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "opt-level=3",
+]
+
+# Windows targets for cross-compilation
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+ar = "x86_64-w64-mingw32-ar"
+
+[target.i686-pc-windows-gnu]
+linker = "i686-w64-mingw32-gcc"
+ar = "i686-w64-mingw32-ar"
+
+# Enable static linking for Windows to reduce dependencies
+[target.x86_64-pc-windows-gnu.dependencies]
+winapi = { version = "*", features = ["winuser", "winsock2"] }
+
+# Optimization settings for release builds
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Distribution profile for final executables
+[profile.dist]
+inherits = "release"
+opt-level = "z" # Optimize for size
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

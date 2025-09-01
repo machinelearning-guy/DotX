@@ -1,0 +1,41 @@
+#!/bin/bash
+# DotX post-installation script
+
+set -e
+
+# Update desktop database
+if command -v update-desktop-database >/dev/null 2>&1; then
+    echo "Updating desktop database..."
+    update-desktop-database /usr/share/applications/ || true
+fi
+
+# Update MIME database
+if command -v update-mime-database >/dev/null 2>&1; then
+    echo "Updating MIME database..."
+    update-mime-database /usr/share/mime/ || true
+fi
+
+# Update icon cache
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    echo "Updating icon cache..."
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor/ || true
+fi
+
+# Create symlink for CLI in /usr/local/bin if it doesn't exist
+if [ ! -e /usr/local/bin/dotx ]; then
+    ln -s /opt/dotx/bin/dotx /usr/local/bin/dotx || true
+fi
+
+# Set permissions
+chmod +x /opt/dotx/bin/dotx-gui
+chmod +x /opt/dotx/bin/dotx
+
+echo "DotX installation completed successfully!"
+echo ""
+echo "You can now:"
+echo "  - Launch the GUI from Applications menu or run: dotx-gui"
+echo "  - Use the CLI by running: dotx --help"
+echo "  - Open .dotx files by double-clicking them"
+echo ""
+
+exit 0

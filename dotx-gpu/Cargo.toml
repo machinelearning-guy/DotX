@@ -1,0 +1,20 @@
+[package]
+name = "dotx-gpu"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "GPU acceleration for DotX using wgpu compute shaders"
+
+[dependencies]
+dotx-core = { path = "../dotx-core" }
+serde.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+log.workspace = true
+wgpu.workspace = true
+bytemuck.workspace = true
+rayon.workspace = true
+
+[features]
+default = []

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="DotX" Language="1033" Version="1.0.0" Manufacturer="DotX Development Team" UpgradeCode="{12345678-1234-1234-1234-123456789012}">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="DotX" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+
+    <!-- Directory structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="DotX" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="DotX" />
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <!-- Components -->
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <!-- Main executable -->
+      <Component Id="DotXGUI" Guid="{11111111-1111-1111-1111-111111111111}">
+        <File Id="DotXGUIExe" Source="$(var.SourceDir)\dotx-gui.exe" KeyPath="yes">
+          <Shortcut Id="DotXGUIShortcut" Directory="ApplicationProgramsFolder" Name="DotX" 
+                    Description="DotX - Extreme-Scale Dot Plot Visualization" WorkingDirectory="INSTALLFOLDER" />
+          <Shortcut Id="DotXGUIDesktopShortcut" Directory="DesktopFolder" Name="DotX" 
+                    Description="DotX - Extreme-Scale Dot Plot Visualization" WorkingDirectory="INSTALLFOLDER" />
+        </File>
+      </Component>
+
+      <!-- CLI executable -->
+      <Component Id="DotXCLI" Guid="{22222222-2222-2222-2222-222222222222}">
+        <File Id="DotXCLIExe" Source="$(var.SourceDir)\dotx.exe" KeyPath="yes" />
+        <!-- Add to PATH -->
+        <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="yes" />
+      </Component>
+
+      <!-- Documentation -->
+      <Component Id="Documentation" Guid="{33333333-3333-3333-3333-333333333333}">
+        <File Id="ReadmeFile" Source="$(var.SourceDir)\README.md" KeyPath="yes" />
+      </Component>
+
+      <!-- License -->
+      <Component Id="License" Guid="{44444444-4444-4444-4444-444444444444}">
+        <File Id="LicenseFile" Source="$(var.SourceDir)\LICENSE" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Application shortcut cleanup -->
+    <Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder" Guid="{55555555-5555-5555-5555-555555555555}">
+      <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\Microsoft\DotX" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- UI -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.SourceDir)\License.rtf" />
+    <UI>
+      <UIRef Id="WixUI_InstallDir" />
+    </UI>
+
+    <!-- File associations -->
+    <Component Id="FileAssociations" Directory="INSTALLFOLDER" Guid="{66666666-6666-6666-6666-666666666666}">
+      <RegistryKey Root="HKCR" Key=".dotx">
+        <RegistryValue Type="string" Value="DotXProject" />
+      </RegistryKey>
+      <RegistryKey Root="HKCR" Key="DotXProject">
+        <RegistryValue Type="string" Value="DotX Project File" />
+      </RegistryKey>
+      <RegistryKey Root="HKCR" Key="DotXProject\shell\open\command">
+        <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]dotx-gui.exe&quot; &quot;%1&quot;" />
+      </RegistryKey>
+    </Component>
+  </Product>
+</Wix>

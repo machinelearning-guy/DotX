@@ -1,0 +1,24 @@
+[package]
+name = "dotx-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Command line interface for DotX"
+
+[dependencies]
+dotx-core = { path = "../dotx-core" }
+dotx-gpu = { path = "../dotx-gpu" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+log.workspace = true
+env_logger.workspace = true
+clap.workspace = true
+which.workspace = true
+pollster.workspace = true
+
+[[bin]]
+name = "dotx"
+path = "src/main.rs"

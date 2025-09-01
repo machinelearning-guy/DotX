@@ -1,0 +1,22 @@
+Package: dotx
+Version: 1.0.0
+Section: science
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.34), libgcc-s1 (>= 7), libgtk-3-0 (>= 3.24), libssl3 (>= 3.0.0)
+Recommends: minimap2
+Maintainer: DotX Development Team <contact@dotx.bio>
+Homepage: https://github.com/dotx-bio/dotx
+Description: Extreme-scale dot plot visualization for bioinformatics
+ DotX is a revolutionary, offline, single-application dot-plot system that 
+ scales to ~100 Gb per axis with near 1 bp/px zoom, powered by a sparse 
+ multiresolution data model and optional GPU acceleration.
+ .
+ Features:
+  * Extreme Scale: Browse 10¹¹ bp axes with smooth interaction
+  * Cross-Platform: Windows, macOS, Linux support  
+  * GPU Accelerated: Optional GPU processing for maximum performance
+  * Deterministic: Exact reproducible results with embedded provenance
+  * Offline-First: No internet required, no telemetry by default
+ .
+ This package includes both the GUI application and command-line interface.
