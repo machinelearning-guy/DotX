@@ -1,0 +1,28 @@
+[package]
+name = "dotx-render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "High-performance GPU-accelerated rendering for genome visualizations"
+
+[dependencies]
+dotx-core = { path = "../core" }
+serde.workspace = true
+anyhow.workspace = true
+log.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+bytemuck.workspace = true
+glam.workspace = true
+
+# Additional render-specific dependencies
+pollster = "0.3"
+cgmath = "0.18"
+image = "0.24"
+lyon = "1.0"
+futures = "0.3"
+
+[dev-dependencies]
+env_logger.workspace = true

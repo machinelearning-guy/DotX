@@ -2,19 +2,43 @@
 name = "dotx-gpu"
 version.workspace = true
 edition.workspace = true
-authors.workspace = true
 license.workspace = true
-description = "GPU acceleration for DotX using wgpu compute shaders"
+authors.workspace = true
+repository.workspace = true
+description = "GPU-accelerated rendering pipeline for DotX genome visualizations"
 
 [dependencies]
 dotx-core = { path = "../dotx-core" }
-serde.workspace = true
-thiserror.workspace = true
-anyhow.workspace = true
-log.workspace = true
-wgpu.workspace = true
-bytemuck.workspace = true
-rayon.workspace = true
+serde = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+bytemuck = { workspace = true, features = ["derive"] }
+
+# GPU rendering dependencies (optional)
+wgpu = { version = "0.19", optional = true }
+winit = { version = "0.29", optional = true }
+glam = { version = "0.27", optional = true }
+pollster = { version = "0.3", optional = true }
+
+# Vector export dependencies
+svg = { version = "0.13", optional = true }
+printpdf = { version = "0.6", optional = true }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+image = { version = "0.24", default-features = false, features = ["png"] }
+
+# Performance and utilities
+rayon = "1.7"
+dashmap = "5.5"
+parking_lot = "0.12"
+
+[dev-dependencies]
+env_logger = "0.10"
+tokio = { version = "1.0", features = ["rt-multi-thread"] }
+tempfile = "3"
 
 [features]
-default = []
+default = ["vector-export"]
+webgpu = ["wgpu", "winit", "glam", "pollster"]
+vector-export = ["svg"]
+printpdf = ["dep:printpdf"]
+gpu-verification = []

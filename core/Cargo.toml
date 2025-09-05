@@ -1,0 +1,45 @@
+[package]
+name = "dotx-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Core algorithms and data structures for genome analysis and dot plot generation"
+
+[dependencies]
+serde.workspace = true
+serde_json = "1.0"
+anyhow.workspace = true
+log.workspace = true
+bincode.workspace = true
+zstd.workspace = true
+rayon.workspace = true
+memmap2.workspace = true
+byteorder.workspace = true
+
+# Additional core-specific dependencies
+thiserror = "1.0"
+bitvec = "1.0"
+fnv = "1.0"
+dashmap = "5.5"
+chrono = { version = "0.4", features = ["serde"] }
+
+# File format parsing dependencies
+needletail = "0.5"  # Fast FASTA/FASTQ parsing
+noodles = { version = "0.75", features = ["sam", "bam", "bgzf"] }  # SAM/BAM parsing
+regex = "1.10"      # Regular expressions for parsing
+flate2 = "1.0"      # Gzip compression support
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3.8"
+proptest = "1.4"
+
+[[bench]]
+name = "suffix_array"
+harness = false
+
+[[bench]]
+name = "tiling"
+harness = false

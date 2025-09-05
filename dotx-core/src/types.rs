@@ -1,171 +1,27 @@
-use bytemuck::{Pod, Zeroable};
+//! Core data types for DOTx
+//!
+//! This module contains the unified data structures for DOTx, including the
+//! core Anchor model used across all components.
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-pub type GenomicPos = u64;
-pub type TileIndex = u64;
-pub type LodLevel = u16;
+/// Position type for genomic coordinates
+pub type Position = u64;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct GenomicCoord {
-    pub contig_id: u32,
-    pub position: GenomicPos,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GenomicInterval {
-    pub contig_id: u32,
-    pub start: GenomicPos,
-    pub end: GenomicPos,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct TileCoord {
-    pub lod: LodLevel,
-    pub tile_x: TileIndex,
-    pub tile_y: TileIndex,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Pod, Zeroable)]
-#[repr(C)]
-pub struct BinData {
-    pub count: u32,
-    pub sum_len: u32,
-    pub sum_identity: u32,
-    pub strand_balance: i32,
-}
-
-impl Default for BinData {
-    fn default() -> Self {
-        Self {
-            count: 0,
-            sum_len: 0,
-            sum_identity: 0,
-            strand_balance: 0,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ContigInfo {
-    pub id: u32,
-    pub name: String,
-    pub length: GenomicPos,
-    pub offset: GenomicPos, // Global coordinate offset
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct GenomeInfo {
-    pub contigs: Vec<ContigInfo>,
-    pub total_length: GenomicPos,
-    pub contig_map: HashMap<String, u32>,
-}
-
-impl GenomeInfo {
-    pub fn new() -> Self {
-        Self {
-            contigs: Vec::new(),
-            total_length: 0,
-            contig_map: HashMap::new(),
-        }
-    }
-
-    pub fn add_contig(&mut self, name: String, length: GenomicPos) -> u32 {
-        let id = self.contigs.len() as u32;
-        let offset = self.total_length;
-
-        self.contigs.push(ContigInfo {
-            id,
-            name: name.clone(),
-            length,
-            offset,
-        });
-
-        self.contig_map.insert(name, id);
-        self.total_length += length;
-        id
-    }
-
-    pub fn get_contig(&self, id: u32) -> Option<&ContigInfo> {
-        self.contigs.get(id as usize)
-    }
-
-    pub fn get_contig_by_name(&self, name: &str) -> Option<&ContigInfo> {
-        self.contig_map
-            .get(name)
-            .and_then(|&id| self.get_contig(id))
-    }
-
-    pub fn global_to_local(&self, global_pos: GenomicPos) -> Option<GenomicCoord> {
-        // Validate global position is within total genome length
-        if global_pos >= self.total_length {
-            return None;
-        }
-
-        for contig in &self.contigs {
-            let contig_end = contig.offset.saturating_add(contig.length);
-            if global_pos >= contig.offset && global_pos < contig_end {
-                let local_pos = global_pos.saturating_sub(contig.offset);
-                // Validate local position doesn't exceed contig length
-                if local_pos < contig.length {
-                    return Some(GenomicCoord {
-                        contig_id: contig.id,
-                        position: local_pos,
-                    });
-                }
-            }
-        }
-        None
-    }
-
-    pub fn local_to_global(&self, coord: GenomicCoord) -> Option<GenomicPos> {
-        self.get_contig(coord.contig_id).and_then(|contig| {
-            // Validate local position is within contig bounds
-            if coord.position < contig.length {
-                // Use saturating addition to prevent overflow
-                Some(contig.offset.saturating_add(coord.position))
-            } else {
-                None
-            }
-        })
-    }
-
-    /// Validate that a genomic interval is valid within this genome
-    pub fn validate_interval(&self, interval: &GenomicInterval) -> bool {
-        if let Some(contig) = self.get_contig(interval.contig_id) {
-            interval.start < interval.end
-                && interval.start < contig.length
-                && interval.end <= contig.length
-        } else {
-            false
-        }
-    }
-
-    /// Clamp a genomic position to valid bounds within the genome
-    pub fn clamp_position(&self, pos: GenomicPos) -> GenomicPos {
-        pos.min(self.total_length.saturating_sub(1))
-    }
-}
-
+/// Strand orientation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Strand {
     Forward,
     Reverse,
 }
 
-impl From<bool> for Strand {
-    fn from(forward: bool) -> Self {
-        if forward {
-            Strand::Forward
-        } else {
-            Strand::Reverse
+impl std::fmt::Display for Strand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Strand::Forward => write!(f, "+"),
+            Strand::Reverse => write!(f, "-"),
         }
-    }
-}
-
-impl From<Strand> for bool {
-    fn from(strand: Strand) -> Self {
-        matches!(strand, Strand::Forward)
     }
 }
 
@@ -174,16 +30,234 @@ impl From<char> for Strand {
         match c {
             '+' => Strand::Forward,
             '-' => Strand::Reverse,
-            _ => Strand::Forward, // Default to forward
+            _ => Strand::Forward,
         }
     }
 }
 
-impl From<Strand> for char {
-    fn from(strand: Strand) -> Self {
-        match strand {
-            Strand::Forward => '+',
-            Strand::Reverse => '-',
+/// Sequence data structure
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Sequence {
+    pub id: String,
+    pub description: Option<String>,
+    pub data: Vec<u8>,
+    pub length: Position,
+}
+
+impl Sequence {
+    pub fn new(id: String, data: Vec<u8>) -> Self {
+        let length = data.len() as Position;
+        Self {
+            id,
+            description: None,
+            data,
+            length,
         }
+    }
+    
+    pub fn with_description(mut self, description: String) -> Self {
+        self.description = Some(description);
+        self
+    }
+}
+
+/// Unified Anchor model as specified in the plan
+/// Core data structure representing a seed-level match between query and target sequences
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Anchor {
+    /// Query contig name
+    pub q: String,
+    /// Target contig name  
+    pub t: String,
+    /// Query start position (0-based)
+    pub qs: u64,
+    /// Query end position (exclusive)
+    pub qe: u64,
+    /// Target start position (0-based)
+    pub ts: u64,
+    /// Target end position (exclusive)
+    pub te: u64,
+    /// Strand orientation (+ or -)
+    pub strand: Strand,
+    /// Mapping quality (optional)
+    pub mapq: Option<u8>,
+    /// Identity percentage (optional, populated by verification)
+    pub identity: Option<f32>,
+    /// Which engine created this anchor
+    pub engine_tag: String,
+    
+    // Extended metadata for compatibility with file formats
+    pub query_length: Option<u64>,          // total query sequence length
+    pub target_length: Option<u64>,         // total target sequence length
+    pub residue_matches: Option<u32>,       // number of matching bases
+    pub alignment_block_length: Option<u64>, // length of alignment block
+    pub tags: HashMap<String, String>,      // additional tags from formats
+}
+
+impl Anchor {
+    /// Create a basic anchor with core fields
+    pub fn new(
+        q: String,
+        t: String,
+        qs: u64,
+        qe: u64,
+        ts: u64,
+        te: u64,
+        strand: Strand,
+        engine_tag: String,
+    ) -> Self {
+        Self {
+            q,
+            t,
+            qs,
+            qe,
+            ts,
+            te,
+            strand,
+            mapq: None,
+            identity: None,
+            engine_tag,
+            query_length: None,
+            target_length: None,
+            residue_matches: None,
+            alignment_block_length: None,
+            tags: HashMap::new(),
+        }
+    }
+
+    /// Create an Anchor from file parser data
+    pub fn from_parser(
+        query_name: String,
+        query_length: u64,
+        query_start: u64,
+        query_end: u64,
+        strand: Strand,
+        target_name: String,
+        target_length: u64,
+        target_start: u64,
+        target_end: u64,
+        residue_matches: u32,
+        alignment_block_length: u64,
+    ) -> Self {
+        Self {
+            q: query_name,
+            t: target_name,
+            qs: query_start,
+            qe: query_end,
+            ts: target_start,
+            te: target_end,
+            strand,
+            mapq: None,
+            identity: None,
+            engine_tag: "parser".to_string(),
+            query_length: Some(query_length),
+            target_length: Some(target_length),
+            residue_matches: Some(residue_matches),
+            alignment_block_length: Some(alignment_block_length),
+            tags: HashMap::new(),
+        }
+    }
+
+    pub fn with_mapping_quality(mut self, quality: u8) -> Self {
+        self.mapq = Some(quality);
+        self
+    }
+
+    pub fn with_identity(mut self, identity: f32) -> Self {
+        self.identity = Some(identity);
+        self
+    }
+
+    pub fn with_tag(mut self, key: String, value: String) -> Self {
+        self.tags.insert(key, value);
+        self
+    }
+    
+    /// Query span length
+    pub fn query_len(&self) -> u64 {
+        self.qe - self.qs
+    }
+    
+    /// Target span length  
+    pub fn target_len(&self) -> u64 {
+        self.te - self.ts
+    }
+    
+    /// Average span length
+    pub fn avg_len(&self) -> f64 {
+        (self.query_len() + self.target_len()) as f64 / 2.0
+    }
+    
+    /// Minimum span length
+    pub fn min_len(&self) -> u64 {
+        self.query_len().min(self.target_len())
+    }
+
+    /// Get identity as percentage (0.0 to 100.0)
+    pub fn get_identity(&self) -> f64 {
+        if let (Some(matches), Some(block_len)) = (self.residue_matches, self.alignment_block_length) {
+            if block_len > 0 {
+                (matches as f64 / block_len as f64) * 100.0
+            } else {
+                0.0
+            }
+        } else if let Some(id) = self.identity {
+            id as f64
+        } else {
+            0.0
+        }
+    }
+
+    /// Get identity as fraction (0.0 to 1.0)
+    pub fn get_identity_fraction(&self) -> f64 {
+        self.get_identity() / 100.0
+    }
+
+    /// Check if this anchor represents a diagonal match (same strand, similar coordinates)
+    pub fn is_diagonal(&self) -> bool {
+        self.strand == Strand::Forward &&
+        (self.qs as i64 - self.ts as i64).abs() < 1000 // Allow some tolerance
+    }
+
+    /// Check if this anchor represents an anti-diagonal match (reverse strand)
+    pub fn is_anti_diagonal(&self) -> bool {
+        self.strand == Strand::Reverse
+    }
+
+    // Compatibility aliases for existing code
+    pub fn query_name(&self) -> &str {
+        &self.q
+    }
+
+    pub fn target_name(&self) -> &str {
+        &self.t
+    }
+
+    pub fn query_start(&self) -> u64 {
+        self.qs
+    }
+
+    pub fn query_end(&self) -> u64 {
+        self.qe
+    }
+
+    pub fn target_start(&self) -> u64 {
+        self.ts
+    }
+
+    pub fn target_end(&self) -> u64 {
+        self.te
+    }
+
+    pub fn query_span_length(&self) -> u64 {
+        self.query_len()
+    }
+    
+    pub fn target_span_length(&self) -> u64 {
+        self.target_len()
+    }
+    
+    pub fn alignment_length(&self) -> u64 {
+        self.min_len()
     }
 }

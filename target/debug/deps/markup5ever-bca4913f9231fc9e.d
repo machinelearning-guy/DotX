@@ -1,0 +1,15 @@
+/home/alex-humphries/DotX/target/debug/deps/markup5ever-bca4913f9231fc9e.d: /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/lib.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/data/mod.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/interface/mod.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/interface/tree_builder.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/serialize.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/util/buffer_queue.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/util/smallcharset.rs /home/alex-humphries/DotX/target/debug/build/markup5ever-47a85dbc5cd41f90/out/generated.rs /home/alex-humphries/DotX/target/debug/build/markup5ever-47a85dbc5cd41f90/out/named_entities.rs
+
+/home/alex-humphries/DotX/target/debug/deps/libmarkup5ever-bca4913f9231fc9e.rmeta: /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/lib.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/data/mod.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/interface/mod.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/interface/tree_builder.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/serialize.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/util/buffer_queue.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/util/smallcharset.rs /home/alex-humphries/DotX/target/debug/build/markup5ever-47a85dbc5cd41f90/out/generated.rs /home/alex-humphries/DotX/target/debug/build/markup5ever-47a85dbc5cd41f90/out/named_entities.rs
+
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/lib.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/data/mod.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/interface/mod.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/interface/tree_builder.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/serialize.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/util/buffer_queue.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/markup5ever-0.11.0/util/smallcharset.rs:
+/home/alex-humphries/DotX/target/debug/build/markup5ever-47a85dbc5cd41f90/out/generated.rs:
+/home/alex-humphries/DotX/target/debug/build/markup5ever-47a85dbc5cd41f90/out/named_entities.rs:
+
+# env-dep:OUT_DIR=/home/alex-humphries/DotX/target/debug/build/markup5ever-47a85dbc5cd41f90/out

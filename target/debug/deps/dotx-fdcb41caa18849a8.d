@@ -1,0 +1,12 @@
+/home/alex-humphries/DotX/target/debug/deps/dotx-fdcb41caa18849a8.d: cli/src/main.rs cli/src/config.rs cli/src/commands/mod.rs cli/src/commands/import.rs cli/src/commands/render.rs cli/src/commands/gui.rs
+
+/home/alex-humphries/DotX/target/debug/deps/libdotx-fdcb41caa18849a8.rmeta: cli/src/main.rs cli/src/config.rs cli/src/commands/mod.rs cli/src/commands/import.rs cli/src/commands/render.rs cli/src/commands/gui.rs
+
+cli/src/main.rs:
+cli/src/config.rs:
+cli/src/commands/mod.rs:
+cli/src/commands/import.rs:
+cli/src/commands/render.rs:
+cli/src/commands/gui.rs:
+
+# env-dep:CARGO_PKG_VERSION=0.1.0

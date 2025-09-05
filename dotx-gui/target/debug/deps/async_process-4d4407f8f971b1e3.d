@@ -1,0 +1,9 @@
+/home/alex-humphries/DotX/dotx-gui/target/debug/deps/async_process-4d4407f8f971b1e3.d: /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/lib.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/unix.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/mod.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/wait.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/signal.rs
+
+/home/alex-humphries/DotX/dotx-gui/target/debug/deps/libasync_process-4d4407f8f971b1e3.rmeta: /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/lib.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/unix.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/mod.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/wait.rs /home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/signal.rs
+
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/lib.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/unix.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/mod.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/wait.rs:
+/home/alex-humphries/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.4.0/src/reaper/signal.rs:
